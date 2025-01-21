@@ -6,4 +6,4 @@ Codes are under arrangement.
 
 # Acknowledgement
 
-Our code is based on [Recbole](https://github.com/RUCAIBox/RecBole). We also referred to the codes of [UniSRec](https://github.com/RUCAIBox/UniSRec). Thanks for the splendid codes for these authors.
+Our implementation is based on [Recbole](https://github.com/RUCAIBox/RecBole). We also referred to the codes of [UniSRec](https://github.com/RUCAIBox/UniSRec). Thanks for the splendid codes for these authors.
