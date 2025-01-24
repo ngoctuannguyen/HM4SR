@@ -10,7 +10,7 @@ To run HM4SR, just use the following code.
 python run_hm4sr.py
 ```
 
-We provide processed the Games dataset [link](https://wwxb.lanzoul.com/iAvjo2lu75ri) for your reference. After downloading, just unzip the zip file into the folder of HM4SR.
+We provide the processed Games dataset [link](https://wwxb.lanzoul.com/iAvjo2lu75ri) for your reference. After downloading, just unzip the zip file into the folder of HM4SR.
 
 ## Reference
 
