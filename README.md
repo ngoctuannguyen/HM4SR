@@ -1,4 +1,4 @@
-# (WWW2025) Hierarchical Time-Aware Mixture of Experts for Multi-Modal Sequential Recommendation
+# Hierarchical Time-Aware Mixture of Experts for Multi-Modal Sequential Recommendation (WWW2025)
 
 This is the official pytorch implementation of our paper "Hierarchical Time-Aware Mixture of Experts for Multi-Modal Sequential Recommendation", which is accepted by WWW2025.
 
