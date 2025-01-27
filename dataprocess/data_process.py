@@ -135,34 +135,6 @@ def prepare_seq(args):
     if not os.path.exists(args.data_path.replace('00_seq', 'minmax_day')):
         local_minmax_day(args, args.data_path.replace('00_seq', 'minmax_num'))
 
-def for_IISAN(args):
-    config = Config(model='SASRec', dataset=f'./dataset/{args.dataset}/{args.dataset}', config_file_list=['./config/data.yaml'])
-    dataset = create_dataset(config)
-    _, _, test_data = data_preparation(config, dataset)
-    item_id_dict = test_data.dataset.field2token_id['item_id']
-    id_item_dict = {}
-    for k,v in item_id_dict.items():
-        id_item_dict[v] = k
-    seq_field = config["ITEM_ID_FIELD"] + config["LIST_SUFFIX"]
-    target_field = config["ITEM_ID_FIELD"]
-    seq_all, target_all = [], []
-    for _, inter in enumerate(test_data):
-        interaction = inter[0]
-        seq = interaction[seq_field].tolist()
-        target_all.extend(interaction[target_field].tolist())
-        seq_all.extend(seq)
-    with open(f'../IISAN/Dataset/{args.dataset}/am_{args.dataset}_users.tsv', 'w') as f:
-        for i in range(len(seq_all)):
-            seq = seq_all[i]
-            f.write(str(i+1) + '\t')
-            for j in range(len(seq)):
-                seq[j] = id_item_dict[seq[j]]
-                if seq[j] == '[PAD]':
-                    seq = seq[:j]
-                    break
-            seq.append(id_item_dict[target_all[i]])
-            f.write(' '.join(seq) + '\n')
-
 def prepare_category(args, padding_idx=0):
     if not os.path.exists(args.data_path.replace('00_seq', 'cat.pt')):
         with open(args.item_dict_path, 'rb') as f: item2id = pickle.load(f)
