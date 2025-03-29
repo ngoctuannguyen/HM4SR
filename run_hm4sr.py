@@ -82,6 +82,6 @@ def print_result(test_result, logger, k=4):
 
 
 if __name__ == '__main__':
-    dataset = 'Games'
+    dataset = 'ml-1m'
     run_recbole(model='HM4SR', dataset=dataset,
                 config_file_list=['./config/data.yaml', f'./config/{dataset}.yaml'])
