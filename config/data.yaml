@@ -5,7 +5,7 @@ metrics: ["NDCG", "MRR"]
 field_separator: "\t"
 seq_separator: " "
 USER_ID_FIELD: user_id
-ITEM_ID_FIELD: item_id
+ITEM_ID_FIELD: MovieID
 # RATING_FIELD: stars
 TIME_FIELD: timestamp
 # NEG_PREFIX: neg_
@@ -16,7 +16,7 @@ shuffle: True
 POSITION_FIELD: position_id
 load_col:
     inter: [user_id, item_id, timestamp]
-    item: ['item_id','title','sales_rank','price','brand','categories','sales_type']
+    item:  ['MovieID', 'Title', 'Genres.0', 'Genres.1', 'Genres2', 'Genres.3', 'Genres.4', 'Genres.5']
 
 user_inter_num_interval: "[5,inf)"
 item_inter_num_interval: "[5,inf)"
