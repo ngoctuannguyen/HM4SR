@@ -5,7 +5,7 @@ metrics: ["NDCG", "MRR"]
 field_separator: "\t"
 seq_separator: " "
 USER_ID_FIELD: user_id
-ITEM_ID_FIELD: MovieID
+ITEM_ID_FIELD: item_id
 # RATING_FIELD: stars
 TIME_FIELD: timestamp
 # NEG_PREFIX: neg_
