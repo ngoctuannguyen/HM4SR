@@ -11,7 +11,7 @@ TIME_FIELD: timestamp
 # NEG_PREFIX: neg_
 ITEM_LIST_LENGTH_FIELD: item_length
 LIST_SUFFIX: _list
-MAX_ITEM_LIST_LENGTH: 50
+MAX_ITEM_LIST_LENGTH: 200
 shuffle: True
 POSITION_FIELD: position_id
 load_col:
