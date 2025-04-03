@@ -261,7 +261,7 @@ class Align_MoE(nn.Module):
         # self.gate_txt = nn.Linear(self.hidden_size, self.expert_num)
         # self.gate_img = nn.Linear(self.hidden_size, self.expert_num)
         self.gate_id = nn.Linear(self.hidden_size, self.expert_num)
-        self.expert = nn.ModuleList([nn.Linear(self.hidden_size * 3, self.hidden_size * 3) for _ in range(self.expert_num)])  # 先实现最简单的专家网络
+        self.expert = nn.ModuleList([nn.Linear(self.hidden_size, self.hidden_size) for _ in range(self.expert_num)])  # 先实现最简单的专家网络
         self.weight = nn.Parameter(torch.tensor(config["initializer_weight"]).to('cuda'), requires_grad=True)
 
     def forward(self, vector):
@@ -292,7 +292,7 @@ class Temporal_MoE_C(nn.Module):
         self.absolute_m = nn.Linear(self.hidden_size, self.hidden_size)
         self.time_embedding = nn.Embedding(int(self.interval_scale * self.get_interval_num()) + 1, self.hidden_size)
 
-        self.expert = [nn.Parameter(torch.Tensor(1, self.hidden_size * 3).to('cuda'), requires_grad=True) for _ in range(self.expert_num)]
+        self.expert = [nn.Parameter(torch.Tensor(1, self.hidden_size).to('cuda'), requires_grad=True) for _ in range(self.expert_num)]
         for i in range(self.expert_num):
             nn.init.normal_(self.expert[i], std=0.1)
 
