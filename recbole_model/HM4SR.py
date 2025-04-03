@@ -89,7 +89,8 @@ class HM4SR(SequentialRecommender):
     def forward(self, input_idx, seq_length, timestamp=None):
         # 嵌入映射
         item_emb = self.item_embedding(input_idx)
-        print(item_emb.shape)
+        # print("Input_idx: ", input_idx.shape)
+        # print("Item_emb: ", item_emb.shape)
         # txt_emb = self.txt_projection(self.txt_embedding(input_idx))
         # img_emb = self.img_projection(self.img_embedding(input_idx))
         # 位置嵌入
@@ -147,6 +148,7 @@ class HM4SR(SequentialRecommender):
         item_emb_seq, seq_vectors, score = self.forward(item_idx, item_seq_len, timestamp)
         pos_items = interaction[self.POS_ITEM_ID]
         loss = self.loss_fct(score, pos_items)
+        # print("Seq_vectors:", seq_vectors[0].shape)
         return loss + self.IDCL(seq_vectors[0], interaction) + self.CP(item_idx) + self.PCL(interaction, item_emb_seq, seq_vectors)
 
     def predict(self, interaction):
@@ -168,9 +170,11 @@ class HM4SR(SequentialRecommender):
         # from UniSRec
         seq_output = F.normalize(seq_pre, dim=0)
         pos_id = interaction['item_id']
+        # print("pos_id: ", pos_id.shape)
         same_pos_id = (pos_id.unsqueeze(1) == pos_id.unsqueeze(0))
         same_pos_id = torch.logical_xor(same_pos_id, torch.eye(pos_id.shape[0], dtype=torch.bool, device=pos_id.device))
         pos_items_emb = self.item_embedding(pos_id)
+        # print("pos_items_emb: ", pos_items_emb.shape)
         pos_items_emb = F.normalize(pos_items_emb, dim=1)
 
         pos_logits = (seq_output * pos_items_emb).sum(dim=1) / self.temperature
@@ -188,6 +192,7 @@ class HM4SR(SequentialRecommender):
         nonzero_idx = torch.where(input_idx != padding_idx) #
         # 嵌入映射
         item_emb = self.item_embedding(item_list)
+        # print("item_embed: ", item_emb.shape)
         # txt_emb = self.txt_projection(self.txt_embedding(item_list))
         # img_emb = self.img_projection(self.img_embedding(item_list))
         # 预测类别
