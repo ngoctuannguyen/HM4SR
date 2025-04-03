@@ -28,6 +28,7 @@ class HM4SR(SequentialRecommender):
         self.beta = config["beta"]
 
         self.item_embedding = nn.Embedding(self.n_items, self.hidden_size, padding_idx=0)
+        print(self.item_embedding.weight.shape)
         self.position_embedding = nn.Embedding(self.max_seq_length, self.hidden_size)
         self.item_seq = TransformerEncoder(
             n_layers=self.n_layers, n_heads=self.n_heads,
@@ -67,7 +68,7 @@ class HM4SR(SequentialRecommender):
         # 增加属性类别预测任务
         cat_emb = torch.load(f'./dataset/{self.data_name}/cat.pt').float()
         self.cat_embedding = nn.Embedding.from_pretrained(cat_emb)
-        self.cat_linear = nn.Linear(3 * self.hidden_size, cat_emb.shape[-1])
+        self.cat_linear = nn.Linear(self.hidden_size, cat_emb.shape[-1])
         self.cat_criterion = nn.BCEWithLogitsLoss()
         # 增加初始MoE
         self.start_moe = Align_MoE(config)
@@ -88,6 +89,7 @@ class HM4SR(SequentialRecommender):
     def forward(self, input_idx, seq_length, timestamp=None):
         # 嵌入映射
         item_emb = self.item_embedding(input_idx)
+        print(item_emb.shape)
         # txt_emb = self.txt_projection(self.txt_embedding(input_idx))
         # img_emb = self.img_projection(self.img_embedding(input_idx))
         # 位置嵌入
@@ -164,7 +166,7 @@ class HM4SR(SequentialRecommender):
 
     def IDCL(self, seq_pre, interaction):
         # from UniSRec
-        seq_output = F.normalize(seq_pre, dim=1)
+        seq_output = F.normalize(seq_pre, dim=0)
         pos_id = interaction['item_id']
         same_pos_id = (pos_id.unsqueeze(1) == pos_id.unsqueeze(0))
         same_pos_id = torch.logical_xor(same_pos_id, torch.eye(pos_id.shape[0], dtype=torch.bool, device=pos_id.device))
