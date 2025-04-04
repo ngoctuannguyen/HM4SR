@@ -55,7 +55,7 @@ class Mamba4Rec(SequentialRecommender):
             module.bias.data.zero_()
 
     def forward(self, item_seq, item_seq_len):
-        item_emb = self.item_embedding(item_seq)
+        item_emb = self.item_embedding(item_seq.long())
         item_emb = self.dropout(item_emb)
         item_emb = self.LayerNorm(item_emb)
         
