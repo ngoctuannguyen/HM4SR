@@ -94,9 +94,11 @@ class HM4SR(SequentialRecommender):
         # txt_emb = self.txt_projection(self.txt_embedding(input_idx))
         # img_emb = self.img_projection(self.img_embedding(input_idx))
         # 位置嵌入
-        id_pos_emb = self.position_embedding.weight[:input_idx.shape[1]]
-        id_pos_emb = id_pos_emb.unsqueeze(0).repeat(item_emb.shape[0], 1, 1)
-        item_emb += id_pos_emb
+
+        # id_pos_emb = self.position_embedding.weight[:input_idx.shape[1]]
+        # id_pos_emb = id_pos_emb.unsqueeze(0).repeat(item_emb.shape[0], 1, 1)
+        # item_emb += id_pos_emb
+
         # txt_emb += id_pos_emb
         # img_emb += id_pos_emb
         ### 添加MoE ###
@@ -327,17 +329,18 @@ class Temporal_MoE_C(nn.Module):
     def forward(self, vector, timestamp):
         # 先只实现softmax
         expert_proba = None
-        absolute_embedding = torch.cos(self.freq_enhance_ab(self.absolute_w(timestamp.unsqueeze(2))))
-        interval_first = torch.zeros((vector.shape[0], 1)).long().to('cuda')
-        interval = torch.log2(timestamp[:, 1:] - timestamp[:, :-1] + 1)
-        interval_index = torch.floor(self.interval_scale * interval).long()
-        interval_index = torch.cat([interval_first, interval_index], dim=-1)
-        interval_embedding = self.time_embedding(interval_index)
-        route = F.softmax(self.gate(torch.cat([interval_embedding, absolute_embedding], dim=-1)), dim=-1)
+        # absolute_embedding = torch.cos(self.freq_enhance_ab(self.absolute_w(timestamp.unsqueeze(2))))
+        # interval_first = torch.zeros((vector.shape[0], 1)).long().to('cuda')
+        # interval = torch.log2(timestamp[:, 1:] - timestamp[:, :-1] + 1)
+        # interval_index = torch.floor(self.interval_scale * interval).long()
+        # interval_index = torch.cat([interval_first, interval_index], dim=-1)
+        # interval_embedding = self.time_embedding(interval_index)
+        # route = F.softmax(self.gate(torch.cat([interval_embedding, absolute_embedding], dim=-1)), dim=-1)
         if self.gate_selection == 'softmax':
             expert_output = []
             for i in range(self.expert_num):
                 expert_output.append((vector * self.expert[i]).unsqueeze(2))
             expert_output = torch.cat(expert_output, dim=2)
-            expert_proba = torch.sum(expert_output * route.unsqueeze(3), dim=2)
-        return expert_proba[:, :, :self.hidden_size]
+            # expert_proba = torch.sum(expert_output * route.unsqueeze(3), dim=2)
+        # return expert_proba[:, :, :self.hidden_size]
+        return expert_output[:, :, :self.hidden_size]
