@@ -55,8 +55,7 @@ class Mamba4Rec(SequentialRecommender):
             module.bias.data.zero_()
 
     def forward(self, item_seq, item_seq_len):
-        item_seq = item_seq.long()
-        item_emb = self.item_embedding(item_seq)
+        item_emb = item_seq.long()
         item_emb = self.dropout(item_emb)
         item_emb = self.LayerNorm(item_emb)
         
@@ -120,6 +119,8 @@ class MambaLayer(nn.Module):
         self.ffn = FeedForward(d_model=d_model, inner_size=d_model*4, dropout=dropout)
     
     def forward(self, input_tensor):
+        # print("INPUT_TENSOR: ", input_tensor.shape)
+        input_tensor = input_tensor.float()
         hidden_states = self.mamba(input_tensor)
         if self.num_layers == 1:        # one Mamba layer without residual connection
             hidden_states = self.LayerNorm(self.dropout(hidden_states))
