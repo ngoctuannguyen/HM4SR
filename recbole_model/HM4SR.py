@@ -6,7 +6,8 @@ from recbole.model.layers import TransformerEncoder
 import pickle
 import math
 import random
-import Mamba4Rec
+from .mamba4rec import Mamba4Rec
+
 
 class HM4SR(SequentialRecommender):
     def __init__(self, config, dataset):
@@ -262,13 +263,14 @@ class Align_MoE(nn.Module):
     def __init__(self, config):
         super(Align_MoE, self).__init__()
         self.expert_num = config["start_expert_num"]
+        self.device = config["device"]
         self.hidden_size = int(config["hidden_size"])
         self.gate_selection = config["start_gate_selection"]
         self.gate_txt = nn.Linear(self.hidden_size, self.expert_num)
         self.gate_img = nn.Linear(self.hidden_size, self.expert_num)
         self.gate_id = nn.Linear(self.hidden_size, self.expert_num)
         self.expert = nn.ModuleList([nn.Linear(self.hidden_size * 3, self.hidden_size * 3) for _ in range(self.expert_num)])  # 先实现最简单的专家网络
-        self.weight = nn.Parameter(torch.tensor(config["initializer_weight"]).to('cuda'), requires_grad=True)
+        self.weight = nn.Parameter(torch.tensor(config["initializer_weight"]).to(self.device), requires_grad=True)
 
     def forward(self, vector):
         # 先只实现softmax
@@ -289,6 +291,7 @@ class Temporal_MoE_C(nn.Module):
     def __init__(self, config):
         super(Temporal_MoE_C, self).__init__()
         self.data_name = config["dataset"].split('/')[-1]
+        self.device = config["device"]
         self.interval_scale = config["interval_scale"]
         self.hidden_size = int(config["hidden_size"])
         self.expert_num = config["temporal_expert_num"]
@@ -298,7 +301,7 @@ class Temporal_MoE_C(nn.Module):
         self.absolute_m = nn.Linear(self.hidden_size, self.hidden_size)
         self.time_embedding = nn.Embedding(int(self.interval_scale * self.get_interval_num()) + 1, self.hidden_size)
 
-        self.expert = [nn.Parameter(torch.Tensor(1, self.hidden_size * 3).to('cuda'), requires_grad=True) for _ in range(self.expert_num)]
+        self.expert = [nn.Parameter(torch.Tensor(1, self.hidden_size * 3).to(self.device), requires_grad=True) for _ in range(self.expert_num)]
         for i in range(self.expert_num):
             nn.init.normal_(self.expert[i], std=0.1)
 
@@ -310,7 +313,7 @@ class Temporal_MoE_C(nn.Module):
 
     def get_time_embedding(self, timestamp):
         absolute_embedding = torch.cos(self.freq_enhance_ab(self.absolute_w(timestamp.unsqueeze(2))))
-        interval_first = torch.zeros((timestamp.shape[0], 1)).long().to('cuda')
+        interval_first = torch.zeros((timestamp.shape[0], 1)).long().to(self.device)
         interval = torch.log2(timestamp[:, 1:] - timestamp[:, :-1] + 1)
         interval_index = torch.floor(self.interval_scale * interval).long()
         interval_index = torch.cat([interval_first, interval_index], dim=-1)
@@ -319,7 +322,7 @@ class Temporal_MoE_C(nn.Module):
 
     def freq_enhance_ab(self, timestamp):
         freq = 10000
-        freq_seq = torch.arange(0, self.hidden_size, 1.0, dtype=torch.float).to('cuda')
+        freq_seq = torch.arange(0, self.hidden_size, 1.0, dtype=torch.float).to(self.device)
         inv_freq = 1 / torch.pow(freq, (freq_seq / self.hidden_size)).view(1, -1) # shape = (64)
         return timestamp * inv_freq
 
@@ -327,7 +330,7 @@ class Temporal_MoE_C(nn.Module):
         # 先只实现softmax
         expert_proba = None
         absolute_embedding = torch.cos(self.freq_enhance_ab(self.absolute_w(timestamp.unsqueeze(2))))
-        interval_first = torch.zeros((vector.shape[0], 1)).long().to('cuda')
+        interval_first = torch.zeros((vector.shape[0], 1)).long().to(self.device)
         interval = torch.log2(timestamp[:, 1:] - timestamp[:, :-1] + 1)
         interval_index = torch.floor(self.interval_scale * interval).long()
         interval_index = torch.cat([interval_first, interval_index], dim=-1)
