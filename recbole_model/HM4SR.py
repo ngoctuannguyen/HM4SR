@@ -110,7 +110,7 @@ class HM4SR(SequentialRecommender):
         # img_emb += align_info[2]
         ### 添加时序MoE ###
         # item_emb = torch.tensor(item_emb)
-        item_emb = self.time_moe(item_emb, timestamp)
+        item_emb = self.time_moe(torch.tensor(item_emb), timestamp)
         # 层正则化+dropout
         item_emb_o = self.dropout(self.item_ln(item_emb))
         # print("ITEM_EMB_O:", item_emb_o.shape)
@@ -344,4 +344,4 @@ class Temporal_MoE_C(nn.Module):
                 expert_output.append((vector * self.expert[i]).unsqueeze(2))
             expert_output = torch.cat(expert_output, dim=2)
             expert_proba = torch.sum(expert_output * route.unsqueeze(3), dim=2)
-        return expert_proba[:, :, :self.hidden_size], expert_proba[:, :, self.hidden_size: 2 * self.hidden_size], expert_proba[:, :, 2 * self.hidden_size:]
+        return expert_proba[:, :, :self.hidden_size]
