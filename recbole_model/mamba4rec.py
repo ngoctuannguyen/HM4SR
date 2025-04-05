@@ -56,6 +56,10 @@ class Mamba4Rec(SequentialRecommender):
 
     def forward(self, item_seq, item_seq_len):
         item_emb = item_seq
+
+        if not input_tensor.is_contiguous():
+            input_tensor = input_tensor.contiguous()
+
         item_emb = self.dropout(item_emb)
         item_emb = self.LayerNorm(item_emb)
         
@@ -120,7 +124,12 @@ class MambaLayer(nn.Module):
     
     def forward(self, input_tensor):
         # print("INPUT_TENSOR: ", input_tensor.shape)
+
         input_tensor = input_tensor.float()
+
+        if not input_tensor.is_contiguous():
+            input_tensor = input_tensor.contiguous()
+
         hidden_states = self.mamba(input_tensor)
         if self.num_layers == 1:        # one Mamba layer without residual connection
             hidden_states = self.LayerNorm(self.dropout(hidden_states))
