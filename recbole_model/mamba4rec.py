@@ -57,9 +57,6 @@ class Mamba4Rec(SequentialRecommender):
     def forward(self, item_seq, item_seq_len):
         item_emb = item_seq
 
-        if not input_tensor.is_contiguous():
-            input_tensor = input_tensor.contiguous()
-
         item_emb = self.dropout(item_emb)
         item_emb = self.LayerNorm(item_emb)
         
