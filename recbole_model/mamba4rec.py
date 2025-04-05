@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from mamba_ssm import Mamba
+from mamba_ssm import Mamba2Simple
 from recbole.model.abstract_recommender import SequentialRecommender
 from recbole.model.loss import BPRLoss
 
@@ -107,7 +107,7 @@ class MambaLayer(nn.Module):
     def __init__(self, d_model, d_state, d_conv, expand, dropout, num_layers):
         super().__init__()
         self.num_layers = num_layers
-        self.mamba = Mamba(
+        self.mamba = Mamba2Simple(
                 # This module uses roughly 3 * expand * d_model^2 parameters
                 d_model=d_model,
                 d_state=d_state,
