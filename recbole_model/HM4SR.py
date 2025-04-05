@@ -109,7 +109,7 @@ class HM4SR(SequentialRecommender):
         # txt_emb += align_info[1]
         # img_emb += align_info[2]
         ### 添加时序MoE ###
-        # item_emb = torch.tensor(item_emb)
+
         item_emb = self.time_moe(torch.tensor(item_emb), timestamp)
         # 层正则化+dropout
         item_emb_o = self.dropout(self.item_ln(item_emb))
