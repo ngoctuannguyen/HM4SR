@@ -120,7 +120,7 @@ class MambaLayer(nn.Module):
     
     def forward(self, input_tensor):
         # print("INPUT_TENSOR: ", input_tensor.shape)
-        input_tensor = input_tensor.float()
+        input_tensor = input_tensor.float().contiguous()
         hidden_states = self.mamba(input_tensor)
         if self.num_layers == 1:        # one Mamba layer without residual connection
             hidden_states = self.LayerNorm(self.dropout(hidden_states))
