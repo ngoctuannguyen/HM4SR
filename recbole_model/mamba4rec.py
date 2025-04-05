@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from torch.nn import functional as F
 from mamba_ssm import Mamba2
 from recbole.model.abstract_recommender import SequentialRecommender
 from recbole.model.loss import BPRLoss
@@ -126,6 +127,10 @@ class MambaLayer(nn.Module):
 
         if not input_tensor.is_contiguous():
             input_tensor = input_tensor.contiguous()
+
+        if input_tensor.shape[-1] % 8 != 0:
+            padding = 8 - (input_tensor.shape[-1] % 8)
+            input_tensor = F.pad(input_tensor, (0, padding))
 
         hidden_states = self.mamba(input_tensor)
         if self.num_layers == 1:        # one Mamba layer without residual connection
