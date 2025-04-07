@@ -18,6 +18,7 @@ class Mamba4Rec(SequentialRecommender):
         self.d_state = config["d_state"]
         self.d_conv = config["d_conv"]
         self.expand = config["expand"]
+        self.headdim = config["headdim"]
 
         self.item_embedding = nn.Embedding(
             self.n_items, self.hidden_size, padding_idx=0
@@ -34,6 +35,7 @@ class Mamba4Rec(SequentialRecommender):
                 expand=self.expand,
                 dropout=self.dropout_prob,
                 num_layers=self.num_layers,
+                headdim=self.headdim,
             ) for _ in range(self.num_layers)
         ])
         
@@ -124,13 +126,6 @@ class MambaLayer(nn.Module):
         # print("INPUT_TENSOR: ", input_tensor.shape)
 
         input_tensor = input_tensor.float()
-
-        if not input_tensor.is_contiguous():
-            input_tensor = input_tensor.contiguous()
-
-        if input_tensor.shape[-1] % 8 != 0:
-            padding = 8 - (input_tensor.shape[-1] % 8)
-            input_tensor = F.pad(input_tensor, (0, padding))
 
         hidden_states = self.mamba(input_tensor)
         if self.num_layers == 1:        # one Mamba layer without residual connection
