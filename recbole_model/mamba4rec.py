@@ -125,13 +125,6 @@ class MambaLayer(nn.Module):
 
         input_tensor = input_tensor.float()
 
-        if not input_tensor.is_contiguous():
-            input_tensor = input_tensor.contiguous()
-
-        if input_tensor.shape[-1] % 8 != 0:
-            padding = 8 - (input_tensor.shape[-1] % 8)
-            input_tensor = F.pad(input_tensor, (0, padding))
-
         hidden_states = self.mamba(input_tensor)
         if self.num_layers == 1:        # one Mamba layer without residual connection
             hidden_states = self.LayerNorm(self.dropout(hidden_states))
