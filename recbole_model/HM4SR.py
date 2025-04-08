@@ -2,7 +2,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from recbole.model.abstract_recommender import SequentialRecommender
-from recbole.model.layers import TransformerEncoder
+# from recbole.model.layers import TransformerEncoder
+from torch.nn import TransformerEncoder, TransformerEncoderLayer
 import pickle
 import math
 import random
@@ -29,20 +30,39 @@ class HM4SR(SequentialRecommender):
 
         self.item_embedding = nn.Embedding(self.n_items, self.hidden_size, padding_idx=0)
         self.position_embedding = nn.Embedding(self.max_seq_length, self.hidden_size)
-        self.item_seq = TransformerEncoder(
-            n_layers=self.n_layers, n_heads=self.n_heads,
-            hidden_size=self.hidden_size, inner_size=self.inner_size, hidden_dropout_prob=self.hidden_dropout_prob, attn_dropout_prob=self.attn_dropout_prob,
-            hidden_act=self.hidden_act, layer_norm_eps=self.layer_norm_eps)
-        self.txt_seq = TransformerEncoder(
-            n_layers=self.n_layers, n_heads=self.n_heads,
-            hidden_size=self.hidden_size, inner_size=self.inner_size, hidden_dropout_prob=self.hidden_dropout_prob,
-            attn_dropout_prob=self.attn_dropout_prob,
-            hidden_act=self.hidden_act, layer_norm_eps=self.layer_norm_eps)
-        self.img_seq = TransformerEncoder(
-            n_layers=self.n_layers, n_heads=self.n_heads,
-            hidden_size=self.hidden_size, inner_size=self.inner_size, hidden_dropout_prob=self.hidden_dropout_prob,
-            attn_dropout_prob=self.attn_dropout_prob,
-            hidden_act=self.hidden_act, layer_norm_eps=self.layer_norm_eps)
+
+        # self.item_seq = TransformerEncoder(
+        #     n_layers=self.n_layers, n_heads=self.n_heads,
+        #     hidden_size=self.hidden_size, inner_size=self.inner_size, hidden_dropout_prob=self.hidden_dropout_prob, attn_dropout_prob=self.attn_dropout_prob,
+        #     hidden_act=self.hidden_act, layer_norm_eps=self.layer_norm_eps)
+        
+        self.item_seq_layer = TransformerEncoderLayer(
+            d_model=self.hidden_size, nhead=self.n_heads, dim_feedforward=self.inner_size, dropout=self.hidden_dropout_prob, activation=self.hidden_act
+        )
+        self.item_seq = TransformerEncoder(self.item_seq_layer, num_layers=self.n_layers)
+
+        # self.txt_seq = TransformerEncoder(
+        #     n_layers=self.n_layers, n_heads=self.n_heads,
+        #     hidden_size=self.hidden_size, inner_size=self.inner_size, hidden_dropout_prob=self.hidden_dropout_prob,
+        #     attn_dropout_prob=self.attn_dropout_prob,
+        #     hidden_act=self.hidden_act, layer_norm_eps=self.layer_norm_eps)
+
+        self.txt_seq_layer = TransformerEncoderLayer(
+            d_model=self.hidden_size, nhead=self.n_heads, dim_feedforward=self.inner_size, dropout=self.hidden_dropout_prob, activation=self.hidden_act
+        )
+        self.txt_seq = TransformerEncoder(self.item_seq_layer, num_layers=self.n_layers)
+
+        # self.img_seq = TransformerEncoder(
+        #     n_layers=self.n_layers, n_heads=self.n_heads,
+        #     hidden_size=self.hidden_size, inner_size=self.inner_size, hidden_dropout_prob=self.hidden_dropout_prob,
+        #     attn_dropout_prob=self.attn_dropout_prob,
+        #     hidden_act=self.hidden_act, layer_norm_eps=self.layer_norm_eps)
+
+        self.img_seq_layer = TransformerEncoderLayer(
+            d_model=self.hidden_size, nhead=self.n_heads, dim_feedforward=self.inner_size, dropout=self.hidden_dropout_prob, activation=self.hidden_act
+        )
+        self.img_seq = TransformerEncoder(self.item_seq_layer, num_layers=self.n_layers)
+
 
         self.item_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
         self.txt_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
