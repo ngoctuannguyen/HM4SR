@@ -73,7 +73,7 @@ class HM4SR(SequentialRecommender):
         self.start_moe = Align_MoE(config)
         # 增加placeholder编码器
         # self.placeholder_txt = nn.Linear(2*self.hidden_size, self.hidden_size)
-        self.placeholder_img = nn.Linear(self.hidden_size, self.hidden_size)
+        self.placeholder_img = nn.Linear(2 * self.hidden_size, self.hidden_size)
 
     def _init_weights(self, module):
         """Initialize the weights"""
@@ -130,6 +130,7 @@ class HM4SR(SequentialRecommender):
         # score = item_score + txt_score + img_score
         # return [item_emb, txt_emb, img_emb], [item_seq, txt_seq, img_seq], score
         score = img_score
+        # print(":::", img_emb.shape, img_seq.shape)
         return img_emb, img_seq, score
 
     def calculate_loss(self, interaction):
@@ -191,6 +192,7 @@ class HM4SR(SequentialRecommender):
         return attr_loss
 
     def seq2seq_contrastive(self, seq_1, seq_2, same_pos_id):
+        # print("SEQ_1", se)
         seq_1 = F.normalize(seq_1, dim=1)
         seq_2 = F.normalize(seq_2, dim=1)
 
@@ -239,7 +241,8 @@ class HM4SR(SequentialRecommender):
         same_pos_id = (pos_id.unsqueeze(1) == pos_id.unsqueeze(0))
         same_pos_id = torch.logical_xor(same_pos_id, torch.eye(item_seq.shape[0], dtype=torch.bool, device=item_seq.device))
         # txt_loss, img_loss = self.seq2seq_contrastive(seq_embs[1], txt_seq, same_pos_id), self.seq2seq_contrastive(seq_embs[2], img_seq, same_pos_id)
-        img_loss = self.seq2seq_contrastive(seq_embs[0], img_seq, same_pos_id)
+        # print(img_seq.shape)
+        img_loss = self.seq2seq_contrastive(seq_embs, img_seq, same_pos_id)
         
         # return (txt_loss + img_loss) / 2
         return img_loss / 2
@@ -266,7 +269,7 @@ class Align_MoE(nn.Module):
                 expert_output.append(self.expert[i](vector).unsqueeze(2))
             expert_output = torch.cat(expert_output, dim=2)
             output = []
-            output.append(self.weight[0] * torch.sum(expert_output[:,:,:,:self.hidden_size] * F.softmax(self.gate_id(vector[:,:,:self.hidden_size]), dim=-1).unsqueeze(3), dim=2))
+            output.append(self.weight[0] * torch.sum(expert_output[:,:,:,:self.hidden_size] * F.softmax(self.gate_img(vector[:,:,:self.hidden_size]), dim=-1).unsqueeze(3), dim=2))
             # output.append(self.weight[1] * torch.sum(expert_output[:,:,:, self.hidden_size:2 * self.hidden_size] * F.softmax(self.gate_txt(vector[:,:,self.hidden_size:2 * self.hidden_size]), dim=-1).unsqueeze(3), dim=2))
             # output.append(self.weight[0] * torch.sum(expert_output[:,:,:,2 * self.hidden_size:] * F.softmax(self.gate_img(vector[:,:,2 * self.hidden_size:]), dim=-1).unsqueeze(3), dim=2))
         return output
