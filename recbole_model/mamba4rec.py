@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from mamba_ssm import Mamba
+from mamba_ssm import Mamba2
 from recbole.model.abstract_recommender import SequentialRecommender
 from recbole.model.loss import BPRLoss
 
@@ -17,6 +17,7 @@ class Mamba4Rec(SequentialRecommender):
         self.d_state = config["d_state"]
         self.d_conv = config["d_conv"]
         self.expand = config["expand"]
+        self.headdim = config["headdim"]
 
         self.item_embedding = nn.Embedding(
             self.n_items, self.hidden_size, padding_idx=0
@@ -33,6 +34,7 @@ class Mamba4Rec(SequentialRecommender):
                 expand=self.expand,
                 dropout=self.dropout_prob,
                 num_layers=self.num_layers,
+                headdim=self.headdim
             ) for _ in range(self.num_layers)
         ])
         
@@ -104,15 +106,16 @@ class Mamba4Rec(SequentialRecommender):
         return scores
     
 class MambaLayer(nn.Module):
-    def __init__(self, d_model, d_state, d_conv, expand, dropout, num_layers):
+    def __init__(self, d_model, d_state, d_conv, expand, dropout, num_layers, headdim):
         super().__init__()
         self.num_layers = num_layers
-        self.mamba = Mamba(
+        self.mamba = Mamba2(
                 # This module uses roughly 3 * expand * d_model^2 parameters
                 d_model=d_model,
                 d_state=d_state,
                 d_conv=d_conv,
                 expand=expand,
+                headdim=headdim,
             )
         self.dropout = nn.Dropout(dropout)
         self.LayerNorm = nn.LayerNorm(d_model, eps=1e-12)
