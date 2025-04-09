@@ -232,9 +232,8 @@ class HM4SR(SequentialRecommender):
         img_embs_aug = self.dropout(self.img_ln(img_embs_aug))
         extended_attention_mask = self.get_attention_mask(item_seq)
         # txt_seq_full = self.txt_seq(txt_embs_aug, extended_attention_mask, output_all_encoded_layers=True)[-1]
-        img_seq_full = self.img_seq(img_embs_aug, extended_attention_mask, output_all_encoded_layers=True)[-1]
+        img_seq = self.img_seq(img_embs_aug, self.n_items)
         # txt_seq = self.gather_indexes(txt_seq_full, item_seq_len - 1)
-        img_seq = self.gather_indexes(img_seq_full, item_seq_len - 1)
         # 对比学习计算
         pos_id = interaction['item_id']
         same_pos_id = (pos_id.unsqueeze(1) == pos_id.unsqueeze(0))
