@@ -6,7 +6,7 @@ from recbole.model.layers import TransformerEncoder
 import pickle
 import math
 import random
-
+from .mamba4rec import Mamba4Rec
 
 class HM4SR(SequentialRecommender):
     def __init__(self, config, dataset):
@@ -38,11 +38,7 @@ class HM4SR(SequentialRecommender):
         #     hidden_size=self.hidden_size, inner_size=self.inner_size, hidden_dropout_prob=self.hidden_dropout_prob,
         #     attn_dropout_prob=self.attn_dropout_prob,
         #     hidden_act=self.hidden_act, layer_norm_eps=self.layer_norm_eps)
-        self.img_seq = TransformerEncoder(
-            n_layers=self.n_layers, n_heads=self.n_heads,
-            hidden_size=self.hidden_size, inner_size=self.inner_size, hidden_dropout_prob=self.hidden_dropout_prob,
-            attn_dropout_prob=self.attn_dropout_prob,
-            hidden_act=self.hidden_act, layer_norm_eps=self.layer_norm_eps)
+        self.img_seq = Mamba4Rec(config, dataset)
 
         # self.item_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
         # self.txt_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
@@ -115,10 +111,13 @@ class HM4SR(SequentialRecommender):
         extended_attention_mask = self.get_attention_mask(input_idx)
         # item_seq_full = self.item_seq(item_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
         # txt_seq_full = self.txt_seq(txt_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
-        img_seq_full = self.img_seq(img_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
+        # img_seq_full = self.img_seq(img_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
+
+        img_seq = self.img_seq(img_emb_o, seq_length)
+
         # item_seq = self.gather_indexes(item_seq_full, seq_length - 1)
         # txt_seq = self.gather_indexes(txt_seq_full, seq_length - 1)
-        img_seq = self.gather_indexes(img_seq_full, seq_length - 1)
+        # img_seq = self.gather_indexes(img_seq_full, seq_length - 1)
         # 预测
         # item_emb_full = self.item_embedding.weight
         # txt_emb_full = self.txt_projection(self.txt_embedding.weight)
