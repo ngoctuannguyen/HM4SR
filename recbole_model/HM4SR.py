@@ -266,9 +266,9 @@ class Align_MoE(nn.Module):
                 expert_output.append(self.expert[i](vector).unsqueeze(2))
             expert_output = torch.cat(expert_output, dim=2)
             output = []
-            # output.append(self.weight[0] * torch.sum(expert_output[:,:,:,:self.hidden_size] * F.softmax(self.gate_id(vector[:,:,:self.hidden_size]), dim=-1).unsqueeze(3), dim=2))
+            output.append(self.weight[0] * torch.sum(expert_output[:,:,:,:self.hidden_size] * F.softmax(self.gate_id(vector[:,:,:self.hidden_size]), dim=-1).unsqueeze(3), dim=2))
             # output.append(self.weight[1] * torch.sum(expert_output[:,:,:, self.hidden_size:2 * self.hidden_size] * F.softmax(self.gate_txt(vector[:,:,self.hidden_size:2 * self.hidden_size]), dim=-1).unsqueeze(3), dim=2))
-            output.append(self.weight[2] * torch.sum(expert_output[:,:,:,2 * self.hidden_size:] * F.softmax(self.gate_img(vector[:,:,2 * self.hidden_size:]), dim=-1).unsqueeze(3), dim=2))
+            # output.append(self.weight[0] * torch.sum(expert_output[:,:,:,2 * self.hidden_size:] * F.softmax(self.gate_img(vector[:,:,2 * self.hidden_size:]), dim=-1).unsqueeze(3), dim=2))
         return output
 
 
