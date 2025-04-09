@@ -108,7 +108,7 @@ class Mamba4Rec(SequentialRecommender):
         return scores
     
 class MambaLayer(nn.Module):
-    def __init__(self, d_model, d_state, d_conv, expand, dropout, num_layers):
+    def __init__(self, d_model, d_state, d_conv, expand, dropout, num_layers, headdim):
         super().__init__()
         self.num_layers = num_layers
         self.mamba = Mamba2(
@@ -117,6 +117,7 @@ class MambaLayer(nn.Module):
                 d_state=d_state,
                 d_conv=d_conv,
                 expand=expand,
+                headdim=headdim,
             )
         self.dropout = nn.Dropout(dropout)
         self.LayerNorm = nn.LayerNorm(d_model, eps=1e-12)
