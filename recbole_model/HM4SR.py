@@ -26,6 +26,7 @@ class HM4SR(SequentialRecommender):
         self.phcl_temperature = config["phcl_temperature"]
         self.phcl_weight = config["phcl_weight"]
         self.beta = config["beta"]
+        self.img_seq_len = None
 
         self.item_embedding = nn.Embedding(self.n_items, self.hidden_size, padding_idx=0)
         self.position_embedding = nn.Embedding(self.max_seq_length, self.hidden_size)
@@ -86,6 +87,7 @@ class HM4SR(SequentialRecommender):
         # item_emb = self.item_embedding(input_idx)
         # txt_emb = self.txt_projection(self.txt_embedding(input_idx))
         img_emb = self.img_projection(self.img_embedding(input_idx))
+        self.img_seq_len = seq_length
         # 位置嵌入
         # id_pos_emb = self.position_embedding.weight[:input_idx.shape[1]]
         # id_pos_emb = id_pos_emb.unsqueeze(0).repeat(item_emb.shape[0], 1, 1)
@@ -232,7 +234,7 @@ class HM4SR(SequentialRecommender):
         img_embs_aug = self.dropout(self.img_ln(img_embs_aug))
         extended_attention_mask = self.get_attention_mask(item_seq)
         # txt_seq_full = self.txt_seq(txt_embs_aug, extended_attention_mask, output_all_encoded_layers=True)[-1]
-        img_seq = self.img_seq(img_embs_aug, self.n_items)
+        img_seq = self.img_seq(img_embs_aug, self.img_seq_len)
         # txt_seq = self.gather_indexes(txt_seq_full, item_seq_len - 1)
         # 对比学习计算
         pos_id = interaction['item_id']
