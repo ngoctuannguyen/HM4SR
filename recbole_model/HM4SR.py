@@ -40,7 +40,8 @@ class HM4SR(SequentialRecommender):
                                                     nhead=self.n_heads, 
                                                     dim_feedforward=self.inner_size, 
                                                     dropout=self.hidden_dropout_prob, 
-                                                    activation=self.hidden_act)
+                                                    activation=self.hidden_act,
+                                                    batch_first=True)
         
         self.item_seq = TransformerEncoder(self.item_seq_layer, num_layers=self.n_layers)
 
@@ -54,7 +55,8 @@ class HM4SR(SequentialRecommender):
                                                     nhead=self.n_heads, 
                                                     dim_feedforward=self.inner_size, 
                                                     dropout=self.hidden_dropout_prob, 
-                                                    activation=self.hidden_act)
+                                                    activation=self.hidden_act,
+                                                    batch_first=True)
         
         self.txt_seq = TransformerEncoder(self.item_seq_layer, num_layers=self.n_layers)
 
@@ -68,7 +70,8 @@ class HM4SR(SequentialRecommender):
                                                     nhead=self.n_heads, 
                                                     dim_feedforward=self.inner_size, 
                                                     dropout=self.hidden_dropout_prob, 
-                                                    activation=self.hidden_act)
+                                                    activation=self.hidden_act,
+                                                    batch_first=True)
         
         self.img_seq = TransformerEncoder(self.item_seq_layer, num_layers=self.n_layers)
 
@@ -114,6 +117,15 @@ class HM4SR(SequentialRecommender):
         if isinstance(module, nn.Linear) and module.bias is not None:
             module.bias.data.zero_()
 
+    def get_attention_mask_(self, item_seq):
+        attention_mask = item_seq != 0
+        print('Item_seq', item_seq.shape)
+        extended_attention_mask = torch.tril(
+            attention_mask.expand((item_seq.size(-1), item_seq.size(-1)))
+        )
+        extended_attention_mask = torch.where(extended_attention_mask, 0.0, -10000.0)
+        return extended_attention_mask
+
     def forward(self, input_idx, seq_length, timestamp=None):
         # 嵌入映射
         item_emb = self.item_embedding(input_idx)
@@ -137,7 +149,10 @@ class HM4SR(SequentialRecommender):
         txt_emb_o = self.dropout(self.txt_ln(txt_emb))
         img_emb_o = self.dropout(self.img_ln(img_emb))
         # 序列编码
-        extended_attention_mask = self.get_attention_mask(input_idx)
+        print("...", input_idx.shape)
+        extended_attention_mask = self.get_attention_mask_(input_idx)
+        # extended_attention_mask = extended_attention_mask.view(-1, extended_attention_mask.shape[2], extended_attention_mask.shape[-1])
+        print("Mask shape", extended_attention_mask.shape, item_emb_o.shape)
         item_seq_full = self.item_seq(src=item_emb_o, mask=extended_attention_mask)
         txt_seq_full = self.txt_seq(src=txt_emb_o, mask=extended_attention_mask)
         img_seq_full = self.img_seq(src=img_emb_o, mask=extended_attention_mask)
@@ -252,6 +267,7 @@ class HM4SR(SequentialRecommender):
         txt_embs_aug = self.dropout(self.txt_ln(txt_embs_aug))
         img_embs_aug = self.dropout(self.img_ln(img_embs_aug))
         extended_attention_mask = self.get_attention_mask(item_seq)
+        extended_attention_mask = extended_attention_mask.squeeze(2)
         txt_seq_full = self.txt_seq(src=txt_embs_aug, mask=extended_attention_mask)
         img_seq_full = self.img_seq(src=img_embs_aug, mask=extended_attention_mask)
         txt_seq = self.gather_indexes(txt_seq_full, item_seq_len - 1)
