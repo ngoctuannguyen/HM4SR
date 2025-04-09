@@ -154,7 +154,7 @@ class HM4SR(SequentialRecommender):
         item_emb_seq, seq_vectors, score = self.forward(item_idx, item_seq_len, timestamp)
         pos_items = interaction[self.POS_ITEM_ID]
         loss = self.loss_fct(score, pos_items)
-        return loss + self.IDCL(seq_vectors[0], interaction) + self.CP(item_idx) + self.PCL(interaction, item_emb_seq, seq_vectors)
+        return loss 
 
     def predict(self, interaction):
         item_seq = interaction[self.ITEM_SEQ]
