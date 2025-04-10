@@ -12,9 +12,10 @@ layer_norm_eps: 1e-12
 initializer_range: 0.02
 initializer_weight: [0.0, 1.0, 1.0]
 # loss_type: "CE"
+headdim: 16
 
 # mamba4rec settings
-hidden_size: 256                 # (int) Number of features in the hidden state. 
+hidden_size: 64                 # (int) Number of features in the hidden state. 
 num_layers: 2                   # (int) Number of Mamba layers.
 dropout_prob: 0.2               # (float) Dropout rate.
 loss_type: 'CE'                 # (str) Type of loss function. Range in ['BPR', 'CE'].
