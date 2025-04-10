@@ -6,7 +6,7 @@ from recbole.model.layers import TransformerEncoder
 import pickle
 import math
 import random
-from .mamba4rec import Mamba4Rec
+from .matrec import MaTrRec
 
 
 class HM4SR(SequentialRecommender):
@@ -47,9 +47,9 @@ class HM4SR(SequentialRecommender):
 
         ########## MAMBA ##########
 
-        self.item_seq = Mamba4Rec(config, dataset)
-        self.txt_seq = Mamba4Rec(config, dataset)
-        self.img_seq = Mamba4Rec(config, dataset)
+        self.item_seq = MaTrRec(config, dataset)
+        self.txt_seq = MaTrRec(config, dataset)
+        self.img_seq = MaTrRec(config, dataset)
 
         self.item_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
         self.txt_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
