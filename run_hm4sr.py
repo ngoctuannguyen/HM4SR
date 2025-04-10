@@ -14,6 +14,8 @@ from recbole.utils import (
     set_color,
     get_flops
 )
+import os
+os.environ["TRITON_F32_DEFAULT"] = "ieee"
 
 def get_model(model_name):
     module_path = '.'.join(['recbole_model', model_name])
