@@ -6,7 +6,7 @@ from recbole.model.layers import TransformerEncoder
 import pickle
 import math
 import random
-from .mamba4rec import Mamba4Rec
+from .matrec import MaTrRec
 
 
 class HM4SR(SequentialRecommender):
@@ -47,9 +47,9 @@ class HM4SR(SequentialRecommender):
 
         ########## MAMBA ##########
 
-        self.item_seq = Mamba4Rec(config, dataset)
-        self.txt_seq = Mamba4Rec(config, dataset)
-        self.img_seq = Mamba4Rec(config, dataset)
+        self.item_seq = MaTrRec(config, dataset)
+        self.txt_seq = MaTrRec(config, dataset)
+        self.img_seq = MaTrRec(config, dataset)
 
         self.item_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
         self.txt_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
@@ -116,7 +116,6 @@ class HM4SR(SequentialRecommender):
         txt_emb_o = self.dropout(self.txt_ln(txt_emb))
         img_emb_o = self.dropout(self.img_ln(img_emb))
         # 序列编码
-        extended_attention_mask = self.get_attention_mask(input_idx)
         # item_seq_full = self.item_seq(item_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
         # txt_seq_full = self.txt_seq(txt_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
         # img_seq_full = self.img_seq(img_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
