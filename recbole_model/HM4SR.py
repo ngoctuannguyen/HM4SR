@@ -33,24 +33,24 @@ class HM4SR(SequentialRecommender):
         #     n_layers=self.n_layers, n_heads=self.n_heads,
         #     hidden_size=self.hidden_size, inner_size=self.inner_size, hidden_dropout_prob=self.hidden_dropout_prob, attn_dropout_prob=self.attn_dropout_prob,
         #     hidden_act=self.hidden_act, layer_norm_eps=self.layer_norm_eps)
-        # self.txt_seq = TransformerEncoder(
-        #     n_layers=self.n_layers, n_heads=self.n_heads,
-        #     hidden_size=self.hidden_size, inner_size=self.inner_size, hidden_dropout_prob=self.hidden_dropout_prob,
-        #     attn_dropout_prob=self.attn_dropout_prob,
-        #     hidden_act=self.hidden_act, layer_norm_eps=self.layer_norm_eps)
-        self.img_seq = TransformerEncoder(
+        self.txt_seq = TransformerEncoder(
             n_layers=self.n_layers, n_heads=self.n_heads,
             hidden_size=self.hidden_size, inner_size=self.inner_size, hidden_dropout_prob=self.hidden_dropout_prob,
             attn_dropout_prob=self.attn_dropout_prob,
             hidden_act=self.hidden_act, layer_norm_eps=self.layer_norm_eps)
+        # self.img_seq = TransformerEncoder(
+        #     n_layers=self.n_layers, n_heads=self.n_heads,
+        #     hidden_size=self.hidden_size, inner_size=self.inner_size, hidden_dropout_prob=self.hidden_dropout_prob,
+        #     attn_dropout_prob=self.attn_dropout_prob,
+        #     hidden_act=self.hidden_act, layer_norm_eps=self.layer_norm_eps)
 
         # self.item_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
-        # self.txt_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
-        self.img_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
+        self.txt_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
+        # self.img_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
 
         # 增加模态映射
-        # self.txt_projection = nn.Linear(768, self.hidden_size)
-        self.img_projection = nn.Linear(768, self.hidden_size)
+        self.txt_projection = nn.Linear(768, self.hidden_size)
+        # self.img_projection = nn.Linear(768, self.hidden_size)
 
         self.dropout = nn.Dropout(self.hidden_dropout_prob)
 
@@ -62,8 +62,8 @@ class HM4SR(SequentialRecommender):
         self.apply(self._init_weights)
 
         # 增加模态嵌入
-        # self.txt_embedding = nn.Embedding.from_pretrained(torch.load(f'./dataset/{self.data_name}/txt_emb.pt'))
-        self.img_embedding = nn.Embedding.from_pretrained(torch.load(f'./dataset/{self.data_name}/img_emb.pt'))
+        self.txt_embedding = nn.Embedding.from_pretrained(torch.load(f'./dataset/{self.data_name}/txt_emb.pt'))
+        # self.img_embedding = nn.Embedding.from_pretrained(torch.load(f'./dataset/{self.data_name}/img_emb.pt'))
         # 增加属性类别预测任务
         cat_emb = torch.load(f'./dataset/{self.data_name}/cat.pt').float()
         self.cat_embedding = nn.Embedding.from_pretrained(cat_emb)
@@ -72,8 +72,8 @@ class HM4SR(SequentialRecommender):
         # 增加初始MoE
         self.start_moe = Align_MoE(config)
         # 增加placeholder编码器
-        # self.placeholder_txt = nn.Linear(2*self.hidden_size, self.hidden_size)
-        self.placeholder_img = nn.Linear(2 * self.hidden_size, self.hidden_size)
+        self.placeholder_txt = nn.Linear(2*self.hidden_size, self.hidden_size)
+        # self.placeholder_img = nn.Linear(2 * self.hidden_size, self.hidden_size)
 
     def _init_weights(self, module):
         """Initialize the weights"""
@@ -88,8 +88,8 @@ class HM4SR(SequentialRecommender):
     def forward(self, input_idx, seq_length, timestamp=None):
         # 嵌入映射
         # item_emb = self.item_embedding(input_idx)
-        # txt_emb = self.txt_projection(self.txt_embedding(input_idx))
-        img_emb = self.img_projection(self.img_embedding(input_idx))
+        txt_emb = self.txt_projection(self.txt_embedding(input_idx))
+        # img_emb = self.img_projection(self.img_embedding(input_idx))
         # 位置嵌入
         # id_pos_emb = self.position_embedding.weight[:input_idx.shape[1]]
         # id_pos_emb = id_pos_emb.unsqueeze(0).repeat(item_emb.shape[0], 1, 1)
@@ -99,39 +99,39 @@ class HM4SR(SequentialRecommender):
         ### 添加MoE ###
         # align_info = self.start_moe(torch.tensor([item_emb, txt_emb, img_emb], dim=-1))
         
-        align_info = self.start_moe(torch.tensor(img_emb))
-        img_emb += align_info[0]
+        align_info = self.start_moe(torch.tensor(txt_emb))
+        txt_emb += align_info[0]
 
         # item_emb += align_info[0]
         # txt_emb += align_info[1]
         # img_emb += align_info[2]
         ### 添加时序MoE ###
-        img_emb = self.time_moe(torch.tensor(img_emb), timestamp)
+        txt_emb = self.time_moe(torch.tensor(txt_emb), timestamp)
         # 层正则化+dropout
         # item_emb_o = self.dropout(self.item_ln(item_emb))
-        # txt_emb_o = self.dropout(self.txt_ln(txt_emb))
-        img_emb_o = self.dropout(self.img_ln(img_emb))
+        txt_emb_o = self.dropout(self.txt_ln(txt_emb))
+        # img_emb_o = self.dropout(self.img_ln(img_emb))
         # 序列编码
         extended_attention_mask = self.get_attention_mask(input_idx)
         # item_seq_full = self.item_seq(item_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
-        # txt_seq_full = self.txt_seq(txt_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
-        img_seq_full = self.img_seq(img_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
+        txt_seq_full = self.txt_seq(txt_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
+        # img_seq_full = self.img_seq(img_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
         # item_seq = self.gather_indexes(item_seq_full, seq_length - 1)
-        # txt_seq = self.gather_indexes(txt_seq_full, seq_length - 1)
-        img_seq = self.gather_indexes(img_seq_full, seq_length - 1)
+        txt_seq = self.gather_indexes(txt_seq_full, seq_length - 1)
+        # img_seq = self.gather_indexes(img_seq_full, seq_length - 1)
         # 预测
         # item_emb_full = self.item_embedding.weight
-        # txt_emb_full = self.txt_projection(self.txt_embedding.weight)
-        img_emb_full = self.img_projection(self.img_embedding.weight)
+        txt_emb_full = self.txt_projection(self.txt_embedding.weight)
+        # img_emb_full = self.img_projection(self.img_embedding.weight)
 
         # item_score = torch.matmul(item_seq, item_emb_full.transpose(0, 1))
-        # txt_score = torch.matmul(txt_seq, txt_emb_full.transpose(0, 1))
-        img_score = torch.matmul(img_seq, img_emb_full.transpose(0, 1))
+        txt_score = torch.matmul(txt_seq, txt_emb_full.transpose(0, 1))
+        # img_score = torch.matmul(img_seq, img_emb_full.transpose(0, 1))
         # score = item_score + txt_score + img_score
         # return [item_emb, txt_emb, img_emb], [item_seq, txt_seq, img_seq], score
-        score = img_score
+        score = txt_score
         # print(":::", img_emb.shape, img_seq.shape)
-        return img_emb, img_seq, score
+        return txt_emb, txt_seq, score
 
     def calculate_loss(self, interaction):
         item_idx = interaction[self.ITEM_SEQ]
@@ -181,10 +181,10 @@ class HM4SR(SequentialRecommender):
         nonzero_idx = torch.where(input_idx != padding_idx) #
         # 嵌入映射
         # item_emb = self.item_embedding(item_list)
-        # txt_emb = self.txt_projection(self.txt_embedding(item_list))
-        img_emb = self.img_projection(self.img_embedding(item_list))
+        txt_emb = self.txt_projection(self.txt_embedding(item_list))
+        # img_emb = self.img_projection(self.img_embedding(item_list))
         # 预测类别
-        item_attribute_score = self.cat_linear(torch.tensor(img_emb))
+        item_attribute_score = self.cat_linear(torch.tensor(txt_emb))
         # 获取答案类别
         item_attribute_target = self.cat_embedding(item_list)
         # 计算损失
@@ -219,33 +219,33 @@ class HM4SR(SequentialRecommender):
         item_seq_aug = torch.tensor(masked_item_seq, dtype=torch.long, device=item_seq.device)
         # 占位符替换物品
         # id_embs, txt_embs, img_embs = item_emb_seq[0], item_emb_seq[1], item_emb_seq[2]
-        img_embs = item_emb_seq[0]
+        txt_embs = item_emb_seq[0]
         time_embedding = self.time_moe.get_time_embedding(timestamp)
         placeholder_mask = (item_seq_aug == -1).unsqueeze(2)
-        # txt_embs_aug = txt_embs.masked_fill(placeholder_mask, 0.0)
-        # txt_placeholder = self.placeholder_txt(time_embedding).masked_fill(~placeholder_mask, 0.0)
-        # txt_embs_aug += txt_placeholder
-        img_embs_aug = img_embs.masked_fill(placeholder_mask, 0.0)
-        img_placeholder = self.placeholder_img(time_embedding).masked_fill(~placeholder_mask, 0.0)
-        img_embs_aug += img_placeholder
+        txt_embs_aug = txt_embs.masked_fill(placeholder_mask, 0.0)
+        txt_placeholder = self.placeholder_txt(time_embedding).masked_fill(~placeholder_mask, 0.0)
+        txt_embs_aug += txt_placeholder
+        # img_embs_aug = img_embs.masked_fill(placeholder_mask, 0.0)
+        # img_placeholder = self.placeholder_img(time_embedding).masked_fill(~placeholder_mask, 0.0)
+        # img_embs_aug += img_placeholder
         # 增强表征计算
-        # txt_embs_aug = self.dropout(self.txt_ln(txt_embs_aug))
-        img_embs_aug = self.dropout(self.img_ln(img_embs_aug))
+        txt_embs_aug = self.dropout(self.txt_ln(txt_embs_aug))
+        # img_embs_aug = self.dropout(self.img_ln(img_embs_aug))
         extended_attention_mask = self.get_attention_mask(item_seq)
-        # txt_seq_full = self.txt_seq(txt_embs_aug, extended_attention_mask, output_all_encoded_layers=True)[-1]
-        img_seq_full = self.img_seq(img_embs_aug, extended_attention_mask, output_all_encoded_layers=True)[-1]
-        # txt_seq = self.gather_indexes(txt_seq_full, item_seq_len - 1)
-        img_seq = self.gather_indexes(img_seq_full, item_seq_len - 1)
+        txt_seq_full = self.txt_seq(txt_embs_aug, extended_attention_mask, output_all_encoded_layers=True)[-1]
+        # img_seq_full = self.img_seq(img_embs_aug, extended_attention_mask, output_all_encoded_layers=True)[-1]
+        txt_seq = self.gather_indexes(txt_seq_full, item_seq_len - 1)
+        # img_seq = self.gather_indexes(img_seq_full, item_seq_len - 1)
         # 对比学习计算
         pos_id = interaction['item_id']
         same_pos_id = (pos_id.unsqueeze(1) == pos_id.unsqueeze(0))
         same_pos_id = torch.logical_xor(same_pos_id, torch.eye(item_seq.shape[0], dtype=torch.bool, device=item_seq.device))
         # txt_loss, img_loss = self.seq2seq_contrastive(seq_embs[1], txt_seq, same_pos_id), self.seq2seq_contrastive(seq_embs[2], img_seq, same_pos_id)
         # print(img_seq.shape)
-        img_loss = self.seq2seq_contrastive(seq_embs, img_seq, same_pos_id)
+        txt_loss = self.seq2seq_contrastive(seq_embs, txt_seq, same_pos_id)
         
         # return (txt_loss + img_loss) / 2
-        return img_loss / 2
+        return txt_loss / 2
 
 
 class Align_MoE(nn.Module):
@@ -254,8 +254,8 @@ class Align_MoE(nn.Module):
         self.expert_num = config["start_expert_num"]
         self.hidden_size = int(config["hidden_size"])
         self.gate_selection = config["start_gate_selection"]
-        # self.gate_txt = nn.Linear(self.hidden_size, self.expert_num)
-        self.gate_img = nn.Linear(self.hidden_size, self.expert_num)
+        self.gate_txt = nn.Linear(self.hidden_size, self.expert_num)
+        # self.gate_img = nn.Linear(self.hidden_size, self.expert_num)
         # self.gate_id = nn.Linear(self.hidden_size, self.expert_num)
         self.expert = nn.ModuleList([nn.Linear(self.hidden_size, self.hidden_size) for _ in range(self.expert_num)])  # 先实现最简单的专家网络
         self.weight = nn.Parameter(torch.tensor(config["initializer_weight"]).to('cuda'), requires_grad=True)
@@ -269,7 +269,7 @@ class Align_MoE(nn.Module):
                 expert_output.append(self.expert[i](vector).unsqueeze(2))
             expert_output = torch.cat(expert_output, dim=2)
             output = []
-            output.append(self.weight[0] * torch.sum(expert_output[:,:,:,:self.hidden_size] * F.softmax(self.gate_img(vector[:,:,:self.hidden_size]), dim=-1).unsqueeze(3), dim=2))
+            output.append(self.weight[0] * torch.sum(expert_output[:,:,:,:self.hidden_size] * F.softmax(self.gate_txt(vector[:,:,:self.hidden_size]), dim=-1).unsqueeze(3), dim=2))
             # output.append(self.weight[1] * torch.sum(expert_output[:,:,:, self.hidden_size:2 * self.hidden_size] * F.softmax(self.gate_txt(vector[:,:,self.hidden_size:2 * self.hidden_size]), dim=-1).unsqueeze(3), dim=2))
             # output.append(self.weight[0] * torch.sum(expert_output[:,:,:,2 * self.hidden_size:] * F.softmax(self.gate_img(vector[:,:,2 * self.hidden_size:]), dim=-1).unsqueeze(3), dim=2))
         return output
