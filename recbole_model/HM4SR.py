@@ -6,7 +6,7 @@ from recbole.model.layers import TransformerEncoder
 import pickle
 import math
 import random
-
+from .mamba4rec import Mamba4Rec
 
 class HM4SR(SequentialRecommender):
     def __init__(self, config, dataset):
@@ -26,6 +26,7 @@ class HM4SR(SequentialRecommender):
         self.phcl_temperature = config["phcl_temperature"]
         self.phcl_weight = config["phcl_weight"]
         self.beta = config["beta"]
+        self.txt_seq_len = None
 
         self.item_embedding = nn.Embedding(self.n_items, self.hidden_size, padding_idx=0)
         self.position_embedding = nn.Embedding(self.max_seq_length, self.hidden_size)
@@ -33,16 +34,12 @@ class HM4SR(SequentialRecommender):
         #     n_layers=self.n_layers, n_heads=self.n_heads,
         #     hidden_size=self.hidden_size, inner_size=self.inner_size, hidden_dropout_prob=self.hidden_dropout_prob, attn_dropout_prob=self.attn_dropout_prob,
         #     hidden_act=self.hidden_act, layer_norm_eps=self.layer_norm_eps)
-        self.txt_seq = TransformerEncoder(
-            n_layers=self.n_layers, n_heads=self.n_heads,
-            hidden_size=self.hidden_size, inner_size=self.inner_size, hidden_dropout_prob=self.hidden_dropout_prob,
-            attn_dropout_prob=self.attn_dropout_prob,
-            hidden_act=self.hidden_act, layer_norm_eps=self.layer_norm_eps)
-        # self.img_seq = TransformerEncoder(
+        # self.txt_seq = TransformerEncoder(
         #     n_layers=self.n_layers, n_heads=self.n_heads,
         #     hidden_size=self.hidden_size, inner_size=self.inner_size, hidden_dropout_prob=self.hidden_dropout_prob,
         #     attn_dropout_prob=self.attn_dropout_prob,
         #     hidden_act=self.hidden_act, layer_norm_eps=self.layer_norm_eps)
+        self.txt_seq = Mamba4Rec(config, dataset)
 
         # self.item_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
         self.txt_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
@@ -90,6 +87,7 @@ class HM4SR(SequentialRecommender):
         # item_emb = self.item_embedding(input_idx)
         txt_emb = self.txt_projection(self.txt_embedding(input_idx))
         # img_emb = self.img_projection(self.img_embedding(input_idx))
+        self.txt_seq_len = seq_length
         # 位置嵌入
         # id_pos_emb = self.position_embedding.weight[:input_idx.shape[1]]
         # id_pos_emb = id_pos_emb.unsqueeze(0).repeat(item_emb.shape[0], 1, 1)
@@ -112,12 +110,15 @@ class HM4SR(SequentialRecommender):
         txt_emb_o = self.dropout(self.txt_ln(txt_emb))
         # img_emb_o = self.dropout(self.img_ln(img_emb))
         # 序列编码
-        extended_attention_mask = self.get_attention_mask(input_idx)
+        # extended_attention_mask = self.get_attention_mask(input_idx)
         # item_seq_full = self.item_seq(item_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
-        txt_seq_full = self.txt_seq(txt_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
+        # txt_seq_full = self.txt_seq(txt_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
         # img_seq_full = self.img_seq(img_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
+
+        txt_seq = self.txt_seq(txt_emb_o, seq_length)
+
         # item_seq = self.gather_indexes(item_seq_full, seq_length - 1)
-        txt_seq = self.gather_indexes(txt_seq_full, seq_length - 1)
+        # txt_seq = self.gather_indexes(txt_seq_full, seq_length - 1)
         # img_seq = self.gather_indexes(img_seq_full, seq_length - 1)
         # 预测
         # item_emb_full = self.item_embedding.weight
@@ -225,17 +226,18 @@ class HM4SR(SequentialRecommender):
         txt_embs_aug = txt_embs.masked_fill(placeholder_mask, 0.0)
         txt_placeholder = self.placeholder_txt(time_embedding).masked_fill(~placeholder_mask, 0.0)
         txt_embs_aug += txt_placeholder
-        # img_embs_aug = img_embs.masked_fill(placeholder_mask, 0.0)
+        # img_embs_aug = txt_embs.masked_fill(placeholder_mask, 0.0)
         # img_placeholder = self.placeholder_img(time_embedding).masked_fill(~placeholder_mask, 0.0)
         # img_embs_aug += img_placeholder
         # 增强表征计算
         txt_embs_aug = self.dropout(self.txt_ln(txt_embs_aug))
         # img_embs_aug = self.dropout(self.img_ln(img_embs_aug))
-        extended_attention_mask = self.get_attention_mask(item_seq)
-        txt_seq_full = self.txt_seq(txt_embs_aug, extended_attention_mask, output_all_encoded_layers=True)[-1]
-        # img_seq_full = self.img_seq(img_embs_aug, extended_attention_mask, output_all_encoded_layers=True)[-1]
-        txt_seq = self.gather_indexes(txt_seq_full, item_seq_len - 1)
-        # img_seq = self.gather_indexes(img_seq_full, item_seq_len - 1)
+        # extended_attention_mask = self.get_attention_mask(item_seq)
+        # txt_seq_full = self.txt_seq(txt_embs_aug, extended_attention_mask, output_all_encoded_layers=True)[-1]
+        # img_seq = self.img_seq(img_embs_aug, self.img_seq_len)
+        # txt_seq = self.gather_indexes(txt_seq_full, item_seq_len - 1)
+        txt_seq = self.txt_seq(txt_embs_aug, self.txt_seq_len - 1)
+
         # 对比学习计算
         pos_id = interaction['item_id']
         same_pos_id = (pos_id.unsqueeze(1) == pos_id.unsqueeze(0))
