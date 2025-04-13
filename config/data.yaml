@@ -24,7 +24,7 @@ item_inter_num_interval: "[5,inf)"
 #   stars: "(0,inf)"
 
 epochs: 100
-train_batch_size: 512
+train_batch_size: 1024
 learner: adam
 learning_rate: 0.001
 eval_batch_size: 2048
