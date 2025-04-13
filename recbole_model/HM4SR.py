@@ -6,7 +6,7 @@ from recbole.model.layers import TransformerEncoder
 import pickle
 import math
 import random
-from .matrec import MaTrRec
+from .RecBLR.RecBLR import RecBLR
 
 
 class HM4SR(SequentialRecommender):
@@ -47,9 +47,9 @@ class HM4SR(SequentialRecommender):
 
         ########## MAMBA ##########
 
-        self.item_seq = MaTrRec(config, dataset)
-        self.txt_seq = MaTrRec(config, dataset)
-        self.img_seq = MaTrRec(config, dataset)
+        self.item_seq = RecBLR(config, dataset)
+        self.txt_seq = RecBLR(config, dataset)
+        self.img_seq = RecBLR(config, dataset)
 
         self.item_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
         self.txt_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
@@ -121,10 +121,10 @@ class HM4SR(SequentialRecommender):
         # img_seq_full = self.img_seq(img_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
 
         ########## MAMBA ##########
-        extended_attention_mask = self.get_attention_mask(input_idx)
-        item_seq_full = self.item_seq(item_emb_o, seq_length, extended_attention_mask)
-        txt_seq_full = self.txt_seq(txt_emb_o, seq_length, extended_attention_mask)
-        img_seq_full = self.img_seq(img_emb_o, seq_length, extended_attention_mask)
+        # extended_attention_mask = self.get_attention_mask(input_idx)
+        item_seq_full = self.item_seq(item_emb_o, seq_length)
+        txt_seq_full = self.txt_seq(txt_emb_o, seq_length)
+        img_seq_full = self.img_seq(img_emb_o, seq_length)
         # item_seq = self.gather_indexes(item_seq_full, seq_length - 1)
         # txt_seq = self.gather_indexes(txt_seq_full, seq_length - 1)
         # img_seq = self.gather_indexes(img_seq_full, seq_length - 1)
@@ -248,9 +248,8 @@ class HM4SR(SequentialRecommender):
         # img_seq = self.gather_indexes(img_seq_full, item_seq_len - 1)
 
         ########## MAMBA ##########
-        extended_attention_mask = self.get_attention_mask(item_seq)
-        txt_seq = self.txt_seq(txt_embs_aug, item_seq_len, extended_attention_mask)
-        img_seq = self.img_seq(img_embs_aug, item_seq_len, extended_attention_mask)
+        txt_seq = self.txt_seq(txt_embs_aug, item_seq_len)
+        img_seq = self.img_seq(img_embs_aug, item_seq_len)
 
         # 对比学习计算
         pos_id = interaction['item_id']
