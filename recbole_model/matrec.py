@@ -63,6 +63,7 @@ class MaTrRec(SequentialRecommender):
 
     def forward(self, item_seq, item_seq_len):
         
+        item_seq = nn.Flatten(item_seq, 0, 1)
         item_emb = item_seq
         item_emb = self.LayerNorm(item_emb)
         item_emb = self.dropout(item_emb)
