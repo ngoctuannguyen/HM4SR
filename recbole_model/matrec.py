@@ -23,7 +23,7 @@ class MaTrRec(SequentialRecommender):
         self.hidden_act = config["hidden_act"]
         
         self.item_embedding = nn.Embedding(
-            self.n_items, self.hidden_size, padding_idx=0
+            self.n_items * self.max_seq_length, self.hidden_size, padding_idx=0
         )
         self.LayerNorm = nn.LayerNorm(self.hidden_size, eps=1e-12)
         self.dropout = nn.Dropout(self.dropout_prob)
@@ -61,17 +61,12 @@ class MaTrRec(SequentialRecommender):
         if isinstance(module, nn.Linear) and module.bias is not None:
             module.bias.data.zero_()
 
-    def forward(self, item_seq, item_seq_len):
+    def forward(self, item_seq, item_seq_len, extended_attention_mask=None):
         
-        item_seq = nn.Flatten(0, 1)(item_seq)
         item_seq = item_seq.to(self.device).long()
-        print(item_seq.shape)
-        item_emb = self.item_embedding(item_seq)  # [B, L, d_model]
         item_emb = self.LayerNorm(item_emb)
         item_emb = self.dropout(item_emb)
-        
-        extended_attention_mask = self.get_attention_mask(item_seq)
-        
+                
         for i in range(self.n_layers):
             item_emb = self.mambatr_layers[i](item_emb, extended_attention_mask)
         
