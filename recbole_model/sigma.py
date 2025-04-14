@@ -17,6 +17,7 @@ class SIGMA(SequentialRecommender):
         self.loss_type = config["loss_type"]
         self.num_layers = config["num_layers"]
         self.dropout_prob = config["dropout_prob"]
+        self.device = config["device"]
         
         # Hyperparameters for Mamba block
         self.d_state = config["d_state"]
@@ -61,7 +62,8 @@ class SIGMA(SequentialRecommender):
             module.bias.data.zero_()
 
     def forward(self, item_seq, item_seq_len):
-        item_emb = self.item_embedding(item_seq)
+        item_seq = item_seq.to(device=self.device)
+        item_emb = item_seq
         item_emb = self.dropout(item_emb)
         item_emb = self.LayerNorm(item_emb)
 
