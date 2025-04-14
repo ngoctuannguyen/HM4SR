@@ -270,10 +270,10 @@ class Align_MoE(nn.Module):
         self.device = config["device"]
         self.hidden_size = int(config["hidden_size"])
         self.gate_selection = config["start_gate_selection"]
-        self.gate_txt = nn.Linear(self.hidden_size, self.expert_num)
-        self.gate_img = nn.Linear(self.hidden_size, self.expert_num)
+        # self.gate_txt = nn.Linear(self.hidden_size, self.expert_num)
+        # self.gate_img = nn.Linear(self.hidden_size, self.expert_num)
         self.gate_id = nn.Linear(self.hidden_size, self.expert_num)
-        self.expert = nn.ModuleList([nn.Linear(self.hidden_size * 3, self.hidden_size * 3) for _ in range(self.expert_num)])  # 先实现最简单的专家网络
+        self.expert = nn.ModuleList([nn.Linear(self.hidden_size, self.hidden_size) for _ in range(self.expert_num)])  # 先实现最简单的专家网络
         self.weight = nn.Parameter(torch.tensor(config["initializer_weight"]).to(self.device), requires_grad=True)
 
     def forward(self, vector):
@@ -286,8 +286,8 @@ class Align_MoE(nn.Module):
             expert_output = torch.cat(expert_output, dim=2)
             output = []
             output.append(self.weight[0] * torch.sum(expert_output[:,:,:,:self.hidden_size] * F.softmax(self.gate_id(vector[:,:,:self.hidden_size]), dim=-1).unsqueeze(3), dim=2))
-            output.append(self.weight[1] * torch.sum(expert_output[:,:,:, self.hidden_size:2 * self.hidden_size] * F.softmax(self.gate_txt(vector[:,:,self.hidden_size:2 * self.hidden_size]), dim=-1).unsqueeze(3), dim=2))
-            output.append(self.weight[2] * torch.sum(expert_output[:,:,:,2 * self.hidden_size:] * F.softmax(self.gate_img(vector[:,:,2 * self.hidden_size:]), dim=-1).unsqueeze(3), dim=2))
+            # output.append(self.weight[1] * torch.sum(expert_output[:,:,:, self.hidden_size:2 * self.hidden_size] * F.softmax(self.gate_txt(vector[:,:,self.hidden_size:2 * self.hidden_size]), dim=-1).unsqueeze(3), dim=2))
+            # output.append(self.weight[2] * torch.sum(expert_output[:,:,:,2 * self.hidden_size:] * F.softmax(self.gate_img(vector[:,:,2 * self.hidden_size:]), dim=-1).unsqueeze(3), dim=2))
         return output
 
 
@@ -346,4 +346,4 @@ class Temporal_MoE_C(nn.Module):
                 expert_output.append((vector * self.expert[i]).unsqueeze(2))
             expert_output = torch.cat(expert_output, dim=2)
             expert_proba = torch.sum(expert_output * route.unsqueeze(3), dim=2)
-        return expert_proba[:, :, :self.hidden_size], expert_proba[:, :, self.hidden_size: 2 * self.hidden_size], expert_proba[:, :, 2 * self.hidden_size:]
+        return expert_proba[:, :, :self.hidden_size]
