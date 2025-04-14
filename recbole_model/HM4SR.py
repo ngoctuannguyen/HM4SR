@@ -6,7 +6,7 @@ from recbole.model.layers import TransformerEncoder
 import pickle
 import math
 import random
-from .matrec import MaTrRec
+from .sigma import SIGMA
 
 
 class HM4SR(SequentialRecommender):
@@ -47,7 +47,7 @@ class HM4SR(SequentialRecommender):
 
         ########## MAMBA ##########
 
-        self.item_seq = MaTrRec(config, dataset)
+        self.item_seq = SIGMA(config, dataset)
         # self.txt_seq = MaTrRec(config, dataset)
         # self.img_seq = MaTrRec(config, dataset)
 
@@ -94,6 +94,7 @@ class HM4SR(SequentialRecommender):
 
     def forward(self, input_idx, seq_length, timestamp=None):
         # 嵌入映射
+        
         item_emb = self.item_embedding(input_idx)
         # txt_emb = self.txt_projection(self.txt_embedding(input_idx))
         # img_emb = self.img_projection(self.img_embedding(input_idx))
