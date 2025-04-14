@@ -117,14 +117,13 @@ class MambaTrLayer(nn.Module):
     def __init__(self, d_model, d_state, d_conv, expand, headdim, dropout_prob, n_layers, hidden_dropout_prob, attn_dropout_prob, n_heads, hidden_act):
         super().__init__()
         self.num_layers = n_layers
-        self.mamba = MambaLayer(d_model=d_model, d_state=d_state, d_conv=d_conv,expand=expand, dropout=dropout_prob)
+        self.mamba = MambaLayer(d_model=d_model, d_state=d_state, headdim=headdim, d_conv=d_conv,expand=expand, dropout=dropout_prob)
         self.trm_encoder = TransformerLayer(n_heads=n_heads, hidden_size=d_model, 
                                             intermediate_size=d_model * 4, 
                                             hidden_dropout_prob=hidden_dropout_prob, 
                                             attn_dropout_prob=attn_dropout_prob, 
                                             hidden_act=hidden_act, 
                                             layer_norm_eps=1e-12,
-                                            headdim=headdim
                                             )
     def forward(self, input_tensor, extended_attention_mask):
         hidden_states = self.mamba(input_tensor)
