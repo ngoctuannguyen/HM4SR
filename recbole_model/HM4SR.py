@@ -74,7 +74,7 @@ class HM4SR(SequentialRecommender):
         # 增加属性类别预测任务
         cat_emb = torch.load(f'./dataset/{self.data_name}/cat.pt').float()
         self.cat_embedding = nn.Embedding.from_pretrained(cat_emb)
-        self.cat_linear = nn.Linear(3 * self.hidden_size, cat_emb.shape[-1])
+        self.cat_linear = nn.Linear(self.hidden_size, cat_emb.shape[-1])
         self.cat_criterion = nn.BCEWithLogitsLoss()
         # 增加初始MoE
         self.start_moe = Align_MoE(config)
