@@ -4,7 +4,8 @@ from torch import nn
 import torch.nn.functional as fn
 from recbole.model.abstract_recommender import SequentialRecommender
 from recbole.model.loss import BPRLoss
-from mamba_ssm import Mamba
+from mamba_ssm import Mamba2
+
 class MaTrRec(SequentialRecommender):
     def __init__(self, config, dataset):
         super(MaTrRec, self).__init__(config, dataset)
@@ -21,6 +22,7 @@ class MaTrRec(SequentialRecommender):
         self.attn_dropout_prob = config["attn_dropout_prob"]
         self.hidden_dropout_prob = config["hidden_dropout_prob"]
         self.hidden_act = config["hidden_act"]
+        self.headdim = config["headdim"]
         
         self.item_embedding = nn.Embedding(
             self.n_items * self.max_seq_length, self.hidden_size, padding_idx=0
@@ -39,7 +41,8 @@ class MaTrRec(SequentialRecommender):
                 hidden_dropout_prob=self.hidden_dropout_prob,
                 n_layers=self.n_layers,
                 n_heads=self.n_heads,
-                hidden_act=self.hidden_act
+                hidden_act=self.hidden_act,
+                headdim=self.headdim
             ) for _ in range(self.n_layers)
         ])
         
@@ -111,7 +114,7 @@ class MaTrRec(SequentialRecommender):
         )  # [B, n_items]
         return scores
 class MambaTrLayer(nn.Module):
-    def __init__(self, d_model, d_state, d_conv, expand, dropout_prob, n_layers, hidden_dropout_prob, attn_dropout_prob, n_heads, hidden_act):
+    def __init__(self, d_model, d_state, d_conv, expand, headdim, dropout_prob, n_layers, hidden_dropout_prob, attn_dropout_prob, n_heads, hidden_act):
         super().__init__()
         self.num_layers = n_layers
         self.mamba = MambaLayer(d_model=d_model, d_state=d_state, d_conv=d_conv,expand=expand, dropout=dropout_prob)
@@ -121,6 +124,7 @@ class MambaTrLayer(nn.Module):
                                             attn_dropout_prob=attn_dropout_prob, 
                                             hidden_act=hidden_act, 
                                             layer_norm_eps=1e-12,
+                                            headdim=headdim
                                             )
     def forward(self, input_tensor, extended_attention_mask):
         hidden_states = self.mamba(input_tensor)
@@ -128,13 +132,14 @@ class MambaTrLayer(nn.Module):
         return hidden_states
 
 class MambaLayer(nn.Module):
-    def __init__(self, d_model, d_state, d_conv, expand, dropout):
+    def __init__(self, d_model, d_state, d_conv, expand, headdim, dropout):
         super().__init__()
-        self.mamba = Mamba(
+        self.mamba = Mamba2(
                 d_model=d_model,
                 d_state=d_state,
                 d_conv=d_conv,
                 expand=expand,
+                headdim=headdim
             )
         self.dropout = nn.Dropout(dropout)
         self.LayerNorm = nn.LayerNorm(d_model, eps=1e-12)
