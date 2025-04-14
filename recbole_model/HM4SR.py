@@ -48,16 +48,16 @@ class HM4SR(SequentialRecommender):
         ########## MAMBA ##########
 
         self.item_seq = MaTrRec(config, dataset)
-        self.txt_seq = MaTrRec(config, dataset)
-        self.img_seq = MaTrRec(config, dataset)
+        # self.txt_seq = MaTrRec(config, dataset)
+        # self.img_seq = MaTrRec(config, dataset)
 
         self.item_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
-        self.txt_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
-        self.img_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
+        # self.txt_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
+        # self.img_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
 
         # 增加模态映射
-        self.txt_projection = nn.Linear(768, self.hidden_size)
-        self.img_projection = nn.Linear(768, self.hidden_size)
+        # self.txt_projection = nn.Linear(768, self.hidden_size)
+        # self.img_projection = nn.Linear(768, self.hidden_size)
 
         self.dropout = nn.Dropout(self.hidden_dropout_prob)
 
@@ -69,8 +69,8 @@ class HM4SR(SequentialRecommender):
         self.apply(self._init_weights)
 
         # 增加模态嵌入
-        self.txt_embedding = nn.Embedding.from_pretrained(torch.load(f'./dataset/{self.data_name}/txt_emb.pt'))
-        self.img_embedding = nn.Embedding.from_pretrained(torch.load(f'./dataset/{self.data_name}/img_emb.pt'))
+        # self.txt_embedding = nn.Embedding.from_pretrained(torch.load(f'./dataset/{self.data_name}/txt_emb.pt'))
+        # self.img_embedding = nn.Embedding.from_pretrained(torch.load(f'./dataset/{self.data_name}/img_emb.pt'))
         # 增加属性类别预测任务
         cat_emb = torch.load(f'./dataset/{self.data_name}/cat.pt').float()
         self.cat_embedding = nn.Embedding.from_pretrained(cat_emb)
@@ -79,8 +79,8 @@ class HM4SR(SequentialRecommender):
         # 增加初始MoE
         self.start_moe = Align_MoE(config)
         # 增加placeholder编码器
-        self.placeholder_txt = nn.Linear(2*self.hidden_size, self.hidden_size)
-        self.placeholder_img = nn.Linear(2*self.hidden_size, self.hidden_size)
+        # self.placeholder_txt = nn.Linear(2*self.hidden_size, self.hidden_size)
+        # self.placeholder_img = nn.Linear(2*self.hidden_size, self.hidden_size)
 
     def _init_weights(self, module):
         """Initialize the weights"""
@@ -95,26 +95,27 @@ class HM4SR(SequentialRecommender):
     def forward(self, input_idx, seq_length, timestamp=None):
         # 嵌入映射
         item_emb = self.item_embedding(input_idx)
-        txt_emb = self.txt_projection(self.txt_embedding(input_idx))
-        img_emb = self.img_projection(self.img_embedding(input_idx))
+        # txt_emb = self.txt_projection(self.txt_embedding(input_idx))
+        # img_emb = self.img_projection(self.img_embedding(input_idx))
         # 位置嵌入
         id_pos_emb = self.position_embedding.weight[:input_idx.shape[1]]
         id_pos_emb = id_pos_emb.unsqueeze(0).repeat(item_emb.shape[0], 1, 1)
         item_emb += id_pos_emb
-        txt_emb += id_pos_emb
-        img_emb += id_pos_emb
+        # txt_emb += id_pos_emb
+        # img_emb += id_pos_emb
         ### 添加MoE ###
-        align_info = self.start_moe(torch.cat([item_emb, txt_emb, img_emb], dim=-1))
+        align_info = self.start_moe(torch.tensor(item_emb))
         item_emb += align_info[0]
-        txt_emb += align_info[1]
-        img_emb += align_info[2]
+        # txt_emb += align_info[1]
+        # img_emb += align_info[2]
         ### 添加时序MoE ###
-        item_emb, txt_emb, img_emb = self.time_moe(torch.cat([item_emb, txt_emb, img_emb], dim=-1), timestamp)
+        # item_emb, txt_emb, img_emb = self.time_moe(torch.cat([item_emb, txt_emb, img_emb], dim=-1), timestamp)
+        item_emb = self.time_moe(torch.tensor(item_emb), timestamp)
         # 层正则化+dropout
         item_emb_o = self.dropout(self.item_ln(item_emb))
         # print("ITEM_EMB_O:", item_emb_o.shape)
-        txt_emb_o = self.dropout(self.txt_ln(txt_emb))
-        img_emb_o = self.dropout(self.img_ln(img_emb))
+        # txt_emb_o = self.dropout(self.txt_ln(txt_emb))
+        # img_emb_o = self.dropout(self.img_ln(img_emb))
         # 序列编码
         # item_seq_full = self.item_seq(item_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
         # txt_seq_full = self.txt_seq(txt_emb_o, extended_attention_mask, output_all_encoded_layers=True)[-1]
@@ -123,27 +124,29 @@ class HM4SR(SequentialRecommender):
         ########## MAMBA ##########
         extended_attention_mask = self.get_attention_mask(input_idx)
         item_seq_full = self.item_seq(item_emb_o, seq_length, extended_attention_mask)
-        txt_seq_full = self.txt_seq(txt_emb_o, seq_length, extended_attention_mask)
-        img_seq_full = self.img_seq(img_emb_o, seq_length, extended_attention_mask)
+        # txt_seq_full = self.txt_seq(txt_emb_o, seq_length, extended_attention_mask)
+        # img_seq_full = self.img_seq(img_emb_o, seq_length, extended_attention_mask)
         # item_seq = self.gather_indexes(item_seq_full, seq_length - 1)
         # txt_seq = self.gather_indexes(txt_seq_full, seq_length - 1)
         # img_seq = self.gather_indexes(img_seq_full, seq_length - 1)
 
         ######## MAMBA #######
         item_seq = item_seq_full
-        txt_seq = txt_seq_full
-        img_seq = img_seq_full
+        # txt_seq = txt_seq_full
+        # img_seq = img_seq_full
 
         # 预测
         item_emb_full = self.item_embedding.weight
-        txt_emb_full = self.txt_projection(self.txt_embedding.weight)
-        img_emb_full = self.img_projection(self.img_embedding.weight)
+        # txt_emb_full = self.txt_projection(self.txt_embedding.weight)
+        # img_emb_full = self.img_projection(self.img_embedding.weight)
 
         item_score = torch.matmul(item_seq, item_emb_full.transpose(0, 1))
-        txt_score = torch.matmul(txt_seq, txt_emb_full.transpose(0, 1))
-        img_score = torch.matmul(img_seq, img_emb_full.transpose(0, 1))
-        score = item_score + txt_score + img_score
-        return [item_emb, txt_emb, img_emb], [item_seq, txt_seq, img_seq], score
+        # txt_score = torch.matmul(txt_seq, txt_emb_full.transpose(0, 1))
+        # img_score = torch.matmul(img_seq, img_emb_full.transpose(0, 1))
+        score = item_score 
+        # return [item_emb, txt_emb, img_emb], [item_seq, txt_seq, img_seq], score
+        return item_emb, item_seq, score
+
 
     def calculate_loss(self, interaction):
         item_idx = interaction[self.ITEM_SEQ]
@@ -152,7 +155,7 @@ class HM4SR(SequentialRecommender):
         item_emb_seq, seq_vectors, score = self.forward(item_idx, item_seq_len, timestamp)
         pos_items = interaction[self.POS_ITEM_ID]
         loss = self.loss_fct(score, pos_items)
-        return loss + self.IDCL(seq_vectors[0], interaction) + self.CP(item_idx) + self.PCL(interaction, item_emb_seq, seq_vectors)
+        return loss + self.IDCL(seq_vectors[0], interaction) + self.CP(item_idx)
 
     def predict(self, interaction):
         item_seq = interaction[self.ITEM_SEQ]
@@ -193,10 +196,10 @@ class HM4SR(SequentialRecommender):
         nonzero_idx = torch.where(input_idx != padding_idx) #
         # 嵌入映射
         item_emb = self.item_embedding(item_list)
-        txt_emb = self.txt_projection(self.txt_embedding(item_list))
-        img_emb = self.img_projection(self.img_embedding(item_list))
+        # txt_emb = self.txt_projection(self.txt_embedding(item_list))
+        # img_emb = self.img_projection(self.img_embedding(item_list))
         # 预测类别
-        item_attribute_score = self.cat_linear(torch.cat([item_emb, txt_emb, img_emb], dim=-1))
+        item_attribute_score = self.cat_linear(torch.tensor(item_emb))
         # 获取答案类别
         item_attribute_target = self.cat_embedding(item_list)
         # 计算损失
