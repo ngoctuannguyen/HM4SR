@@ -305,7 +305,7 @@ class Temporal_MoE_C(nn.Module):
         self.absolute_m = nn.Linear(self.hidden_size, self.hidden_size)
         self.time_embedding = nn.Embedding(int(self.interval_scale * self.get_interval_num()) + 1, self.hidden_size)
 
-        self.expert = [nn.Parameter(torch.Tensor(1, self.hidden_size * 3).to(self.device), requires_grad=True) for _ in range(self.expert_num)]
+        self.expert = [nn.Parameter(torch.Tensor(1, self.hidden_size).to(self.device), requires_grad=True) for _ in range(self.expert_num)]
         for i in range(self.expert_num):
             nn.init.normal_(self.expert[i], std=0.1)
 
