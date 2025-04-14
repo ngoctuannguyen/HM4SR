@@ -174,7 +174,7 @@ class HM4SR(SequentialRecommender):
 
     def IDCL(self, seq_pre, interaction):
         # from UniSRec
-        seq_output = F.normalize(seq_pre, dim=1)
+        seq_output = F.normalize(seq_pre, dim=0)
         pos_id = interaction['item_id']
         same_pos_id = (pos_id.unsqueeze(1) == pos_id.unsqueeze(0))
         same_pos_id = torch.logical_xor(same_pos_id, torch.eye(pos_id.shape[0], dtype=torch.bool, device=pos_id.device))
