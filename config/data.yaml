@@ -28,7 +28,7 @@ train_batch_size: 1024
 learner: adam
 learning_rate: 0.001
 eval_batch_size: 2048
-valid_metric: NDCG@20
+valid_metric: NDCG@5
 valid_metric_bigger: True
 eval_args:
   split: { "LS": "valid_and_test" }
